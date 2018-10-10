@@ -8,13 +8,24 @@
         - Android tablet
         - `other channels` (?)
     - Support of new **options** (configurable set of values, depends on amount of entities provided by current API):
-        - accounts with editable nickname
-        - future account benchmarcs
-        - future available for withdraw
+        - amounts
+        - groups
+        - (see `Horizontal slicing options` section)
         - ...
     - Support of new **response formats** (should be transparent and should not affect the logic of services):
         - JSON (no actions, simple data representation with raw JSON)
         - `other formats` (?)
+
+# Advantages of URI versioning (v2-based) approach
+- Better granularity and flexibility (provided by channels and options)
+- Better layering and codebase structure
+- Better tests coverage
+- No changes in existing functionality
+- Less supervision from OLS guys
+- Less effort
+- Less testing (including manual)
+- Flexibility
+- Less latency and less network pressure
     
 # Key concepts
 - We will use URI versioning approach
@@ -28,7 +39,8 @@ https://hostname/v2/products https://hostname/v2/customers
     architecture, b/c such kind of logic should NOT be present at the business services layer
         - Look through the **Testing strategy** section to understand how to safely perform such a change
         - Look through the **Design patterns** section to understand a new *Facades* and *Builders* layers
-- Newly introduced aspects - **v2**
+- Newly introduced aspects -- **v2**
+    - Smooth process without the worries about existing functionality
     - Technical reasons
         - REST API design is a long-term commitment towards the users of that API, REST API should only be up-versioned
         when significant or groundbreaking changes made in the API. Here is the list of some common points when we:
@@ -39,37 +51,86 @@ https://hostname/v2/products https://hostname/v2/customers
         (our case) in the REST API design and features. This also indicates REST API consumer significant changes. All
         minor changes like new endpoints etc. are known as non-breaking changes. Use minor version increment (v1.0 to
         v1.1) to show these changes in the API.
+    - Tests only for newly introduced pieces of functionality
+    - Less supervision and discussions
+    - Less QA (manual)
     - I was NOT involved in a development of **v1** API
     - I am NOT aware of all corener cases
     - I am NOT aware of business value of all data interconnections and dependencies
     - It is always risky to change existing codebase that is covered with tests only **partially**
+    - Separate **v2** folder for v2-specific classes (? -- need to be aligned with best practices) 
 - Caching
-    - From the perspective of proxy caches in the middle, each approach has advantages and disadvantages: if the URI is versioned, then the cache will need to keep multiple copies of each Resource – one for every version of the API. This puts load on the cache and decreases the cache hit rate, since different clients will use different versions. Also, some cache invalidation mechanisms will no longer work. If the media type is the one that is versioned, then both the Client and the Service need to support the Vary HTTP header to indicate that there are multiple versions being cached.
-    - From the perspective of client caching however, the solution that versions the media type involves slightly more work than the one where URIs contain the version identifier. This is because it’s simply easier to cache something when its key is an URL than a media type.
+    - If the URI is versioned, then the cache will need to keep multiple copies of each Resource � one for every version of the API. This puts load on the cache and decreases the cache hit rate, since different clients will use different versions. Also, some cache invalidation mechanisms will no longer work.
 - Split view and business types of logic
-- Content negotiation (json, HAL/json)
+- Content negotiation (raw json, HAL/json)
 
 # Best practices and examples
+```java
+ENV_URL = "/wma/account-balances/v1/balances"
 
+GET <ENV_URL>/v2/investment/amounts
+GET <ENV_URL>/v2/investment/groups
+
+GET <ENV_URL>/v2/investment?channel=ipad
+    - In this case the configuration for a particular channel contains an amount of options to be returned:
+        - groups
+        - amounts
+
+GET <ENV_URL>/v2/investment?options=amounts,groups
+    - In this case we directly specify fetched options 
+```
+
+# Horizontal slicing options (see `Best practices and examples` section as well)
+- Available set of options (groups, amounts, etc. for each API endpoint) should be confirmed separately
+- Could be analyzed by live responses per endpoint
+- Could be aligned with valies the specify the sequence of properties in response
+```java
+@JsonPropertyOrder({"id", "lastUpdatedOn", "criteria", "_embedded", "groups", "_links" })
+```
+- Sailaja's approach (filtering)
+- Should be extracted to enum and carefully validated when the request comes to controller (`@Valid`)
 
 # Sequence
-- 
-
-# Advantages
-- Layering
-- Better code coverage
-- No changes in existing functionality
-- Less supervision from OLS guys
-- Less effort
-- Less testing (including manual)
-- Flexibility
-- Less latency & less network load 
+- Confirm the strategy inside the CDX team (Amrit, Mike, Alex, Attila, Sailaja)
+- PoC for one of endpoints (**Investment balances** and Sailaja's fork)
+- Talk to Mikhail Shkolnik and Oleg Belenkii about a plan and make everybody in sync
+- v1-changes:
+    - Split response builders and business services (layering)
+        - This will allow us to simplify the logic of services significantly
+        - And prepare a ground for v2-changes
+    - Tests for introduced changes
+- v2-changes:
+    - Options and channels (new approach)
+        - Investment balances
+        - Credit card balances
+        - Investment market values
+        - (revisit all the controllers in com.ubs.wma.rest.balances.v1.api.controller)
+        - ...
+    - Content negotiation (raw JSON for now)
 
 # Design patterns
-
+- Fac'ade
+    - an additional layer of architecture that will obtain data as objects from existing services and DAOs layer 
+    this layer will be responsible for obtaining the options to return / channel type and interact with strategies layer to create a response
+- Strategy
+    - according to passed set of options the layer of strategies will combine the response from the results provided by services and DAOs
+- Builder
+    - the set of builders will be involved in content negotiation mechanism (?)
+    - should also be used to split view and business logic
 
 # Testing strategy
 - No changes without tests
+- Tests first
+- ALL existing tests should work before and after the changes
+- Before we make any kind of change to existing code base, every line of code should be covered with unit tests (if not, we cannot make sure we have not broken anything)
+- Right after the change ALL existing tests should pass (including the set of unit and integration tests created on the previous step)
+- Would be nice to have all possible kinds of tests:
+    - Unit tests -- the most simple and the most powerful coverage
+    - Integration tests -- less by amount but should test the layers of architecture (including end-to-end RestAssured scenarios and MockMVC tests) 
+
+# Key OLS persons
+- Mikhail Shkolnik
+- Oleg Belenkii
 
 # Useful links
 - https://medium.com/@mwaysolutions/10-best-practices-for-better-restful-api-cbe81b06f291
