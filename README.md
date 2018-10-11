@@ -23,7 +23,7 @@
         - JSON (no actions, simple data representation with raw JSON)
         - `other formats` (?)
 
-[Kukliash.jpg](https://postimg.cc/hXFKwq6Z)
+![queen](https://user-images.githubusercontent.com/42194815/46779737-72cba980-ccef-11e8-89bc-3d665c797e1c.jpg)
 
 # Advantages of URI versioning (v2-based) approach
 - Better granularity and flexibility (provided by channels and options)
