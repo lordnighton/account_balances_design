@@ -1,6 +1,13 @@
+# Tasks
+- Account Balances view on iPad
+- DDA
+- Make a set of called data services configurable
+
+# Diagrams
+
 # Aims and goals
 - To design and implement a mechanism that will enhance an existing OLS balances API with:
-    - Support of new **channels** (configurable set of values, specified in Spring config):
+    - Support of new **channels** (configurable set of values, specified in Spring config or Enum):
         - web
         - iPad (CDX)
         - iPhone
@@ -15,6 +22,8 @@
     - Support of new **response formats** (should be transparent and should not affect the logic of services):
         - JSON (no actions, simple data representation with raw JSON)
         - `other formats` (?)
+
+[Kukliash.jpg](https://postimg.cc/hXFKwq6Z)
 
 # Advantages of URI versioning (v2-based) approach
 - Better granularity and flexibility (provided by channels and options)
